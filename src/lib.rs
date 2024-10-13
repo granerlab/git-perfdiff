@@ -30,10 +30,12 @@ pub fn record_runtime(command: &CommandConfig) -> f64 {
     match result {
         Ok(status) if !status.success() => {
             if let Some(code) = status.code() {
+                // TODO: Change to proper logging
                 println!("Program exited with code {code}");
             }
         }
         Err(error) => {
+            // TODO: Change to proper logging
             println!("Failed with error {error}");
         }
         _ => {}
