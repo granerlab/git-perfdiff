@@ -16,6 +16,10 @@ struct Args {
     /// Working directory for program execution
     #[arg(short, long)]
     working_dir: Option<String>,
+
+    /// Whether to show program output
+    #[arg(long, action)]
+    show_output: bool,
 }
 
 fn main() {
@@ -25,6 +29,7 @@ fn main() {
         program: &args.program,
         args: &args.arg.unwrap_or(Vec::new()),
         working_dir: &args.working_dir,
+        show_output: args.show_output,
     };
 
     let measurement = record_runtime(&command);

@@ -1,10 +1,11 @@
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Instant;
 
 pub struct CommandConfig<'a> {
     pub program: &'a String,
     pub args: &'a Vec<String>,
     pub working_dir: &'a Option<String>,
+    pub show_output: bool,
 }
 
 impl CommandConfig<'_> {
@@ -14,6 +15,9 @@ impl CommandConfig<'_> {
         command.args(self.args);
         if let Some(dir) = self.working_dir {
             command.current_dir(dir);
+        }
+        if !self.show_output {
+            command.stdout(Stdio::null());
         }
         command
     }
