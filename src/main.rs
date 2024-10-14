@@ -1,15 +1,9 @@
-use git_perfdiff::{record_runtime, CommandConfig};
-
+use clap::Parser;
+use git_perfdiff::{record_runtime, Args, CommandConfig};
 fn main() {
-    let program = "sleep";
-    let args = &["0.5"];
-    let working_dir: Option<&str> = None;
+    let args = Args::parse();
 
-    let command = CommandConfig {
-        program,
-        args,
-        working_dir,
-    };
+    let command = CommandConfig::from(&args);
 
     let measurement = record_runtime(&command);
     println!("Ran in {measurement} seconds.");
