@@ -1,14 +1,30 @@
+use clap::Parser;
 use git_perfdiff::{record_runtime, CommandConfig};
 
+/// Measure performance of a program across git commits.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Program to run
+    #[arg(short, long)]
+    program: String,
+
+    /// Arguments to pass to program
+    #[arg(short, long)]
+    arg: Option<Vec<String>>,
+
+    /// Working directory for program execution
+    #[arg(short, long)]
+    working_dir: Option<String>,
+}
+
 fn main() {
-    let program = "sleep";
-    let args = &["0.5"];
-    let working_dir: Option<&str> = None;
+    let args = Args::parse();
 
     let command = CommandConfig {
-        program,
-        args,
-        working_dir,
+        program: &args.program,
+        args: &args.arg.unwrap_or(Vec::new()),
+        working_dir: &args.working_dir,
     };
 
     let measurement = record_runtime(&command);

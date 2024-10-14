@@ -1,13 +1,13 @@
 use std::process::Command;
 use std::time::Instant;
 
-pub struct CommandConfig {
-    pub program: &'static str,
-    pub args: &'static [&'static str],
-    pub working_dir: Option<&'static str>,
+pub struct CommandConfig<'a> {
+    pub program: &'a String,
+    pub args: &'a Vec<String>,
+    pub working_dir: &'a Option<String>,
 }
 
-impl CommandConfig {
+impl CommandConfig<'_> {
     #[must_use]
     pub fn to_command(&self) -> Command {
         let mut command = Command::new(self.program);
