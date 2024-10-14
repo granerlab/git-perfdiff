@@ -5,8 +5,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
+which = "6.0.3"
 
 [lints.clippy]
-all = "deny"
-pedantic = "deny"
-nursery = "deny"
+all = {level = "deny", priority = -1}
+pedantic = {level = "deny", priority = -1}
+nursery = {level = "deny", priority = -1}
+
+missing-errors-doc = "allow"
