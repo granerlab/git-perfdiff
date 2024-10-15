@@ -2,7 +2,8 @@
 use std::fmt::Debug;
 
 use clap::Parser;
-use git_perfdiff::{record_runtime, Args, CommandConfig};
+use git_perfdiff::cli::Args;
+use git_perfdiff::{record_runtime, CommandConfig};
 
 /// Print an error to stdout and exit with a failure code.
 fn print_error<E: Debug>(error: E) -> ! {

@@ -1,31 +1,12 @@
 //! Compare the performance of two git commits.
-use clap::Parser;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
 use which::which;
 
-/// Measure performance of a program across git commits.
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-pub struct Args {
-    /// Program to run
-    #[arg(short, long)]
-    pub program: String,
-
-    /// Arguments to pass to program
-    #[arg(short, long)]
-    pub arg: Option<Vec<String>>,
-
-    /// Working directory for program execution
-    #[arg(short, long)]
-    pub working_dir: Option<String>,
-
-    /// Whether to show program output
-    #[arg(long, action)]
-    pub show_output: bool,
-}
+/// Module for CLI definition
+pub mod cli;
 
 /// The validation state of a command,
 /// used for ensuring command is valid before execution.
@@ -68,8 +49,8 @@ impl<'a, S: CommandState> CommandConfig<'a, S> {
     }
 }
 
-impl<'a> From<&'a Args> for CommandConfig<'a, NotValidated> {
-    fn from(value: &'a Args) -> Self {
+impl<'a> From<&'a cli::Args> for CommandConfig<'a, NotValidated> {
+    fn from(value: &'a cli::Args) -> Self {
         /// Static variable to use when there are no arguments to pass.
         const EMPTY_ARGS: &[String] = &[];
         let program_args = value
