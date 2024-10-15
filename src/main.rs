@@ -2,7 +2,9 @@
 use std::fmt::Debug;
 
 use clap::Parser;
-use git_perfdiff::{record_runtime, Args, CommandConfig};
+use git_perfdiff::cli::Args;
+use git_perfdiff::command::config::Config;
+use git_perfdiff::measurement::record_runtime;
 
 /// Print an error to stdout and exit with a failure code.
 fn print_error<E: Debug>(error: E) -> ! {
@@ -13,7 +15,7 @@ fn print_error<E: Debug>(error: E) -> ! {
 fn main() {
     let args = Args::parse();
 
-    let command = CommandConfig::from(&args).validate();
+    let command = Config::from(&args).validate();
 
     match command {
         Ok(command) => {
