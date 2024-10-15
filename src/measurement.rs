@@ -1,4 +1,4 @@
-use crate::command::{Config, Validated};
+use crate::command::{config::Config, validation::Validated};
 use std::time::Instant;
 
 #[must_use]
