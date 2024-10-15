@@ -7,9 +7,12 @@ edition = "2021"
 clap = { version = "4.5.20", features = ["derive"] }
 which = "6.0.3"
 
+[lints.rust]
+missing_docs = "deny"
+
 [lints.clippy]
 all = {level = "deny", priority = -1}
 pedantic = {level = "deny", priority = -1}
 nursery = {level = "deny", priority = -1}
 
-missing-errors-doc = "allow"
+missing-docs-in-private-items = "deny"

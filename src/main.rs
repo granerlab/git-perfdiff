@@ -1,8 +1,10 @@
+//! Compare the performance of two git commits.
 use std::fmt::Debug;
 
 use clap::Parser;
 use git_perfdiff::{record_runtime, Args, CommandConfig};
 
+/// Print an error to stdout and exit with a failure code.
 fn print_error<E: Debug>(error: E) -> ! {
     println!("Error {error:?}");
     std::process::exit(1)
