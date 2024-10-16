@@ -4,9 +4,9 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    /// Program to run
+    /// Command to run
     #[arg(short, long)]
-    pub program: String,
+    pub command: String,
 
     /// Arguments to pass to program
     #[arg(short, long)]
