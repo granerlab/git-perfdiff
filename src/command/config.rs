@@ -6,8 +6,8 @@ use super::validation::{NotValidated, State, Validated};
 
 /// Everything required to execute an external command.
 pub struct Config<'a, S: State> {
-    /// The program to execute.
-    pub program: &'a str,
+    /// The command to execute.
+    pub command: &'a str,
     /// Arguments to be passed to the program.
     pub args: &'a [String],
     /// The directory where the program is executed.
@@ -27,7 +27,7 @@ impl<'a> From<&'a Args> for Config<'a, NotValidated> {
             .as_ref()
             .map_or(EMPTY_ARGS, |arg_vec| arg_vec.as_slice());
         Config {
-            program: &value.program,
+            command: &value.command,
             args: program_args,
             working_dir: &value.working_dir,
             show_output: value.show_output,
@@ -40,7 +40,7 @@ impl Config<'_, Validated> {
     #[must_use]
     /// Construct an executable command from the configuration.
     pub fn to_command(&self) -> Command {
-        let mut command = Command::new(self.program);
+        let mut command = Command::new(self.command);
         command.args(self.args);
         if let Some(dir) = self.working_dir {
             command.current_dir(dir);

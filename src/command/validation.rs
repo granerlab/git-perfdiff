@@ -29,7 +29,7 @@ impl<'a, S: State> Config<'a, S> {
     const fn transition<N: State>(self) -> Config<'a, N> {
         // TODO: Do this without writing out all struct members.
         Config {
-            program: self.program,
+            command: self.command,
             args: self.args,
             working_dir: self.working_dir,
             show_output: self.show_output,
@@ -48,7 +48,7 @@ impl<'a> Config<'a, NotValidated> {
     ///
     /// An error is returned if the command configuration fails the validation.
     pub fn validate(self) -> Result<Config<'a, Validated>, Error> {
-        if which(self.program).is_err() {
+        if which(self.command).is_err() {
             return Err(Error::CommandNotFound);
         }
         match self.working_dir {
