@@ -17,6 +17,12 @@ impl Context {
     /// Forwards any errors arising from `git2`.
     pub fn checkout(&self, reference: &str) -> Result<(), git2::Error> {
         let repo = &self.repo;
+        // We don't want to discard uncommitted files.
+        if !repo.statuses(None)?.is_empty() {
+            return Err(git2::Error::from_str(
+                "Repository contains uncommitted files",
+            ));
+        }
         let (object, git_reference) = repo.revparse_ext(reference)?;
         repo.checkout_tree(&object, None)?;
         git_reference.map_or_else(
