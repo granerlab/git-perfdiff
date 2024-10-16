@@ -9,6 +9,8 @@ pub mod command {
     pub mod config;
     /// Validation utilities
     pub mod validation;
+
+    pub use config::Config;
 }
 
 /// Measurement functions
