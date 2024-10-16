@@ -1,3 +1,4 @@
+use crate::cli::Args as CliArgs;
 use git2::Repository;
 use std::path::PathBuf;
 
@@ -35,5 +36,26 @@ impl Context {
             },
         )?;
         Ok(())
+    }
+}
+
+/// Reference targets for performance diffing.
+pub struct DiffTargets<'a> {
+    /// Base reference.
+    pub base_ref: &'a str,
+    /// Head reference.
+    pub head_ref: &'a str,
+}
+
+impl<'a> From<&'a CliArgs> for DiffTargets<'a> {
+    fn from(value: &'a CliArgs) -> Self {
+        Self {
+            // TODO: default to commit before branching, or the root commit.
+            base_ref: value.base.as_ref().expect("Base ref must be specified"),
+            // TODO: Default to HEAD:
+            // `head_ref: value.head.as_ref().map_or("HEAD", |s| s.as_str())`
+            // Requires binding to the current head using `Context`
+            head_ref: value.head.as_ref().expect("Head ref must be specified"),
+        }
     }
 }

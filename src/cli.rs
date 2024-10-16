@@ -23,6 +23,18 @@ pub struct Args {
     pub show_output: bool,
 
     /// Local path to git repository
+    // TODO: Make this optional, defaulting to the current directory.
     #[arg(long, short)]
     pub path: PathBuf,
+
+    /// Base commit in comparison
+    // TODO: Default to branch split, or root commit.
+    // TOOD: Should this be an `OsString`?
+    #[arg()]
+    pub base: Option<String>,
+
+    /// Head commit in comparison
+    // TODO: Default to
+    #[arg()]
+    pub head: Option<String>,
 }
