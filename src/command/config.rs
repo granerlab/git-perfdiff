@@ -1,6 +1,6 @@
-use crate::cli::Args;
-use std::marker::PhantomData;
+use crate::cli::Args as CliArgs;
 use std::process::{Command, Stdio};
+use std::{marker::PhantomData, path::Path};
 
 use super::validation::{NotValidated, State, Validated};
 
@@ -11,25 +11,27 @@ pub struct Config<'a, S: State> {
     /// Arguments to be passed to the program.
     pub args: &'a [String],
     /// The directory where the program is executed.
-    pub working_dir: &'a Option<String>,
+    pub working_dir: &'a Path,
     /// Whether to print output to stdout.
     pub show_output: bool,
     /// Phantom data to allow the state to be set.
     pub(super) _marker: PhantomData<S>,
 }
 
-impl<'a> From<&'a Args> for Config<'a, NotValidated> {
-    fn from(value: &'a Args) -> Self {
+impl<'a> From<&'a CliArgs> for Config<'a, NotValidated> {
+    fn from(value: &'a CliArgs) -> Self {
         /// Static variable to use when there are no arguments to pass.
         const EMPTY_ARGS: &[String] = &[];
-        let program_args = value
+        let args = value
             .arg
             .as_ref()
             .map_or(EMPTY_ARGS, |arg_vec| arg_vec.as_slice());
+        // Use working dir if defined, otherwise the root of the repo path.
+        let working_dir = value.working_dir.as_ref().unwrap_or(&value.path).as_path();
         Config {
             command: &value.command,
-            args: program_args,
-            working_dir: &value.working_dir,
+            args,
+            working_dir,
             show_output: value.show_output,
             _marker: PhantomData,
         }
@@ -42,9 +44,7 @@ impl Config<'_, Validated> {
     pub fn to_command(&self) -> Command {
         let mut command = Command::new(self.command);
         command.args(self.args);
-        if let Some(dir) = self.working_dir {
-            command.current_dir(dir);
-        }
+        command.current_dir(self.working_dir);
         if !self.show_output {
             command.stdout(Stdio::null());
         }
