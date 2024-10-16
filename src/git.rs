@@ -7,6 +7,7 @@ pub struct Context {
     /// The wrapped repository.
     pub repo: Repository,
     /// Path to the git repository in the file system.
+    // TODO: Refactor to be a `&Path` to avoid cloning
     pub path: PathBuf,
 }
 
@@ -36,6 +37,15 @@ impl Context {
             },
         )?;
         Ok(())
+    }
+}
+
+impl From<&CliArgs> for Context {
+    fn from(value: &CliArgs) -> Self {
+        Self {
+            repo: Repository::open(&value.path).expect("Unable to open repository"),
+            path: value.path.clone(),
+        }
     }
 }
 
