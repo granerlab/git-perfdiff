@@ -1,5 +1,5 @@
 use super::config::Config;
-use std::{marker::PhantomData, path::Path};
+use std::marker::PhantomData;
 use which::which;
 /// The validation state of a command,
 /// used for ensuring command is valid before execution.
@@ -51,12 +51,9 @@ impl<'a> Config<'a, NotValidated> {
         if which(self.command).is_err() {
             return Err(Error::CommandNotFound);
         }
-        match self.working_dir {
-            // Follow symlinks and make sure path exists.
-            Some(path) if !Path::new(path).try_exists().unwrap_or(false) => {
-                Err(Error::WorkingDirNotFound)
-            }
-            _ => Ok(self.transition()),
+        if !self.working_dir.try_exists().unwrap_or(false) {
+            return Err(Error::WorkingDirNotFound);
         }
+        Ok(self.transition())
     }
 }
