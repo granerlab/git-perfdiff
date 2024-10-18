@@ -1,4 +1,5 @@
-use git2::Repository;
+use anyhow::{anyhow, Context, Result};
+use git2::{Oid, Repository};
 use git_perfdiff::git;
 use std::path::{Path, PathBuf};
 
@@ -13,59 +14,56 @@ impl Drop for TestContext {
     }
 }
 
-pub fn initial_commit(repo: &git2::Repository) {
-    let signature = repo.signature().unwrap();
-    let oid = repo.index().unwrap().write_tree().unwrap();
-    let tree = repo.find_tree(oid).unwrap();
-    repo.commit(
+pub fn initial_commit(repo: &git2::Repository) -> Result<Oid> {
+    let signature = repo.signature()?;
+    let oid = repo.index()?.write_tree()?;
+    let tree = repo.find_tree(oid)?;
+    Ok(repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
         "Initial commit",
         &tree,
         &[],
-    )
-    .unwrap();
+    )?)
 }
 
-pub fn git_init(path: &str) -> TestContext {
+pub fn git_init(path: &str) -> Result<TestContext> {
     let path = PathBuf::from(path);
     // Check if directory already exists
     if path.try_exists().unwrap_or_default() {
-        panic!("Directory {path:#?} already exists!");
-    } else {
-        // Attempt to create directory.
-        std::fs::create_dir_all(&path)
-            .unwrap_or_else(|_| panic!("Failed to create directory {path:#?}"));
-    };
+        return Err(anyhow!(format!("Directory {path:#?} already exists!")));
+    }
+
+    // Attempt to create directory.
+    std::fs::create_dir_all(&path).with_context(|| "Failed to create directory {path:#?}")?;
 
     let repo = git2::Repository::init(&path)
-        .unwrap_or_else(|_| panic!("Failed to create repository at {path:#?}"));
-    initial_commit(&repo);
-    let ctx = git::Context { repo, path };
+        .with_context(|| "Failed to create repository at {path:#?}")?;
+    initial_commit(&repo)?;
 
-    TestContext(ctx)
+    Ok(TestContext(git::Context { repo, path }))
 }
 
-pub fn git_add(repo: &Repository, path: &Path) {
-    let mut index = repo.index().unwrap();
-    index.add_path(path).unwrap();
-    index.write().unwrap();
+pub fn git_add(repo: &Repository, path: &Path) -> Result<()> {
+    let mut index = repo.index()?;
+    index.add_path(path)?;
+    index.write()?;
+    Ok(())
 }
 
-pub fn git_commit(repo: &Repository, message: &str) -> git2::Oid {
-    let mut index = repo.index().unwrap();
-    let oid = index.write_tree().unwrap();
-    let signature = repo.signature().unwrap();
-    let parent_commit = repo.head().unwrap().peel_to_commit().unwrap();
-    let tree = repo.find_tree(oid).unwrap();
-    repo.commit(
+pub fn git_commit(repo: &Repository, message: &str) -> Result<Oid> {
+    let mut index = repo.index()?;
+    let oid = index.write_tree()?;
+    let signature = repo.signature()?;
+    let parent_commit = repo.head()?.peel_to_commit()?;
+    let tree = repo.find_tree(oid)?;
+    Ok(repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
         message,
         &tree,
         &[&parent_commit],
-    )
-    .unwrap()
+    )?)
 }

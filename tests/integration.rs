@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use git_perfdiff::{cli, command, git, measurement};
 use std::path::Path;
 
@@ -7,23 +8,23 @@ use utils::{git_add, git_commit, git_init, TestContext};
 const PERFORMANCE_EPSILON: f64 = 0.1;
 
 #[test]
-fn test_integration() {
-    let TestContext(ctx) = &git_init("/tmp/git-perfdiff/test");
+fn test_integration() -> Result<()> {
+    let TestContext(ctx) = &git_init("/tmp/git-perfdiff/test")?;
 
     let script_name = Path::new("script.sh");
     let script_path = Path::join(&ctx.path, script_name);
     std::fs::write(&script_path, "pwd")
-        .unwrap_or_else(|_| panic!("Failed to write {script_path:#?}"));
+        .with_context(|| format!("Failed to write {script_path:#?}"))?;
 
-    git_add(&ctx.repo, script_name);
-    let base_sha = git_commit(&ctx.repo, "Added script");
+    git_add(&ctx.repo, script_name)?;
+    let base_sha = git_commit(&ctx.repo, "Added script")?;
 
     let sleep_duration = 0.2;
 
-    std::fs::write(&script_path, format!("sleep {sleep_duration} && pwd")).unwrap();
+    std::fs::write(&script_path, format!("sleep {sleep_duration} && pwd"))?;
 
-    git_add(&ctx.repo, script_name);
-    let head_sha = git_commit(&ctx.repo, "Changed script");
+    git_add(&ctx.repo, script_name)?;
+    let head_sha = git_commit(&ctx.repo, "Changed script")?;
 
     let args = cli::Args {
         command: "/bin/sh".to_string(),
@@ -38,13 +39,14 @@ fn test_integration() {
     let command_config = command::Config::from(&args).validate().unwrap();
     let diff_targets = git::DiffTargets::from(&args);
 
-    ctx.checkout(diff_targets.base_ref).unwrap();
+    ctx.checkout(diff_targets.base_ref)?;
 
     let measurement = measurement::record_runtime(&command_config);
     assert!(measurement < PERFORMANCE_EPSILON);
 
-    ctx.checkout(diff_targets.head_ref).unwrap();
+    ctx.checkout(diff_targets.head_ref)?;
 
     let measurement = measurement::record_runtime(&command_config);
     assert!((measurement - sleep_duration).abs() < PERFORMANCE_EPSILON);
+    Ok(())
 }
