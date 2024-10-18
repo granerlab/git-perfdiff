@@ -7,7 +7,7 @@ env:
   RUSTFLAGS: "-Dwarnings"
 
 jobs:
-  clippy_check:
+  CI:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,3 +15,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features
+      - name: Set up git config
+        run: |-
+          git config --global user.name Test && \
+          git config --global user.email test@test.com
+      - name: Run Tests
+        run: cargo test
