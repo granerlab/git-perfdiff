@@ -1,4 +1,5 @@
 //! Compare the performance of two git commits.
+use anyhow::Result;
 use std::fmt::Debug;
 
 use clap::Parser;
@@ -15,12 +16,12 @@ fn print_error<E: Debug>(error: E) -> ! {
     std::process::exit(1)
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     let command = Config::from(&args).validate();
-    let git_ctx = Context::from(&args);
-    let diff_targets = DiffTargets::from(&args);
+    let git_ctx = Context::try_from(&args)?;
+    let diff_targets = DiffTargets::try_from(&args)?;
 
     for git_ref in [diff_targets.base_ref, diff_targets.head_ref] {
         println!("Measuring {git_ref}...");
@@ -33,4 +34,6 @@ fn main() {
             Err(error) => print_error(error),
         }
     }
+
+    Ok(())
 }

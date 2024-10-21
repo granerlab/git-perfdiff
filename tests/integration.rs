@@ -37,7 +37,7 @@ fn test_integration() -> Result<()> {
     };
 
     let command_config = command::Config::from(&args).validate().unwrap();
-    let diff_targets = git::DiffTargets::from(&args);
+    let diff_targets = git::DiffTargets::try_from(&args)?;
 
     ctx.checkout(diff_targets.base_ref)?;
 
