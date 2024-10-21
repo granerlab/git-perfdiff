@@ -57,15 +57,22 @@ pub struct DiffTargets<'a> {
     pub head_ref: &'a str,
 }
 
-impl<'a> From<&'a CliArgs> for DiffTargets<'a> {
-    fn from(value: &'a CliArgs) -> Self {
-        Self {
+impl<'a> TryFrom<&'a CliArgs> for DiffTargets<'a> {
+    type Error = anyhow::Error;
+    fn try_from(value: &'a CliArgs) -> Result<Self, Self::Error> {
+        Ok(Self {
             // TODO: default to commit before branching, or the root commit.
-            base_ref: value.base.as_ref().expect("Base ref must be specified"),
+            base_ref: value
+                .base
+                .as_ref()
+                .ok_or_else(|| anyhow!("Base ref must be specified"))?,
             // TODO: Default to HEAD:
             // `head_ref: value.head.as_ref().map_or("HEAD", |s| s.as_str())`
             // Requires binding to the current head using `Context`
-            head_ref: value.head.as_ref().expect("Head ref must be specified"),
-        }
+            head_ref: value
+                .head
+                .as_ref()
+                .ok_or_else(|| anyhow!("Head ref must be specified"))?,
+        })
     }
 }

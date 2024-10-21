@@ -21,7 +21,7 @@ fn main() -> Result<()> {
 
     let command = Config::from(&args).validate();
     let git_ctx = Context::try_from(&args)?;
-    let diff_targets = DiffTargets::from(&args);
+    let diff_targets = DiffTargets::try_from(&args)?;
 
     for git_ref in [diff_targets.base_ref, diff_targets.head_ref] {
         println!("Measuring {git_ref}...");
