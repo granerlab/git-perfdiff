@@ -39,12 +39,13 @@ impl Context {
     }
 }
 
-impl From<&CliArgs> for Context {
-    fn from(value: &CliArgs) -> Self {
-        Self {
-            repo: Repository::open(&value.path).expect("Unable to open repository"),
+impl TryFrom<&CliArgs> for Context {
+    type Error = git2::Error;
+    fn try_from(value: &CliArgs) -> Result<Self, Self::Error> {
+        Ok(Self {
+            repo: Repository::open(&value.path)?,
             path: value.path.clone(),
-        }
+        })
     }
 }
 
