@@ -1,4 +1,5 @@
 use crate::cli::Args as CliArgs;
+use anyhow::{anyhow, Result};
 use git2::Repository;
 use std::path::PathBuf;
 
@@ -17,13 +18,11 @@ impl Context {
     /// # Errors
     ///
     /// Forwards any errors arising from `git2`.
-    pub fn checkout(&self, reference: &str) -> Result<(), git2::Error> {
+    pub fn checkout(&self, reference: &str) -> Result<()> {
         let repo = &self.repo;
         // We don't want to discard uncommitted files.
         if !repo.statuses(None)?.is_empty() {
-            return Err(git2::Error::from_str(
-                "Repository contains uncommitted files",
-            ));
+            return Err(anyhow!("Repository contains uncommitted files"));
         }
         let (object, git_reference) = repo.revparse_ext(reference)?;
         repo.checkout_tree(&object, None)?;
