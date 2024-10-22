@@ -1,18 +1,18 @@
 use crate::cli::Args as CliArgs;
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Git repository context. Wraps the `git2::Repository` type.
-pub struct Context {
+pub struct Context<'a> {
     /// The wrapped repository.
     pub repo: Repository,
     /// Path to the git repository in the file system.
     // TODO: Refactor to be a `&Path` to avoid cloning
-    pub path: PathBuf,
+    pub path: &'a Path,
 }
 
-impl Context {
+impl Context<'_> {
     /// Checkout a git reference (SHA, branch name, tag).
     ///
     /// # Errors
@@ -48,12 +48,12 @@ impl Context {
     }
 }
 
-impl TryFrom<&CliArgs> for Context {
+impl<'a> TryFrom<&'a CliArgs> for Context<'a> {
     type Error = git2::Error;
-    fn try_from(value: &CliArgs) -> Result<Self, Self::Error> {
+    fn try_from(value: &'a CliArgs) -> Result<Self, Self::Error> {
         Ok(Self {
             repo: Repository::open(&value.path)?,
-            path: value.path.clone(),
+            path: &value.path,
         })
     }
 }
@@ -66,7 +66,7 @@ pub struct DiffTargets {
     pub head_ref: git2::Oid,
 }
 
-impl<'a> TryFrom<(&'a CliArgs, &'a Context)> for DiffTargets {
+impl<'a> TryFrom<(&'a CliArgs, &'a Context<'a>)> for DiffTargets {
     type Error = anyhow::Error;
     fn try_from((args, ctx): (&'a CliArgs, &'a Context)) -> Result<Self, Self::Error> {
         /// Default branch name
