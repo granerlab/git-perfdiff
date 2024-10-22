@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use git2::{Oid, Repository};
 use git_perfdiff::git;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-pub struct TestContext(pub git::Context);
+pub struct TestContext<'a>(pub git::Context<'a>);
 
-impl Drop for TestContext {
+impl Drop for TestContext<'_> {
     fn drop(&mut self) {
         let Self(ctx) = self;
         let repo_path = &ctx.path;
@@ -28,18 +28,17 @@ pub fn initial_commit(repo: &git2::Repository) -> Result<Oid> {
     )?)
 }
 
-pub fn git_init(path: &str) -> Result<TestContext> {
-    let path = PathBuf::from(path);
+pub fn git_init(path: &Path) -> Result<TestContext<'_>> {
     // Check if directory already exists
     if path.try_exists().unwrap_or_default() {
         return Err(anyhow!(format!("Directory {path:#?} already exists!")));
     }
 
     // Attempt to create directory.
-    std::fs::create_dir_all(&path).with_context(|| "Failed to create directory {path:#?}")?;
+    std::fs::create_dir_all(path).with_context(|| "Failed to create directory {path:#?}")?;
 
-    let repo = git2::Repository::init(&path)
-        .with_context(|| "Failed to create repository at {path:#?}")?;
+    let repo =
+        git2::Repository::init(path).with_context(|| "Failed to create repository at {path:#?}")?;
     initial_commit(&repo)?;
 
     Ok(TestContext(git::Context { repo, path }))
