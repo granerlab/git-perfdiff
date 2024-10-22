@@ -21,11 +21,13 @@ fn main() -> Result<()> {
 
     let command = Config::from(&args).validate();
     let git_ctx = Context::try_from(&args)?;
-    let diff_targets = DiffTargets::try_from(&args)?;
+    let diff_targets = DiffTargets::try_from((&args, &git_ctx))?;
 
     for git_ref in [diff_targets.base_ref, diff_targets.head_ref] {
         println!("Measuring {git_ref}...");
-        git_ctx.checkout(git_ref).expect("Checkout failed");
+        git_ctx
+            .checkout(git_ref.to_string())
+            .expect("Checkout failed");
         match &command {
             Ok(command) => {
                 let measurement = record_runtime(command);

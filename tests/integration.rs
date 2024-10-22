@@ -37,14 +37,14 @@ fn test_integration() -> Result<()> {
     };
 
     let command_config = command::Config::from(&args).validate().unwrap();
-    let diff_targets = git::DiffTargets::try_from(&args)?;
+    let diff_targets = git::DiffTargets::try_from((&args, ctx))?;
 
-    ctx.checkout(diff_targets.base_ref)?;
+    ctx.checkout(diff_targets.base_ref.to_string())?;
 
     let measurement = measurement::record_runtime(&command_config);
     assert!(measurement < PERFORMANCE_EPSILON);
 
-    ctx.checkout(diff_targets.head_ref)?;
+    ctx.checkout(diff_targets.head_ref.to_string())?;
 
     let measurement = measurement::record_runtime(&command_config);
     assert!((measurement - sleep_duration).abs() < PERFORMANCE_EPSILON);
