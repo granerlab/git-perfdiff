@@ -37,12 +37,10 @@ pub struct Args {
 
     /// Base commit in comparison
     // TODO: Default to branch split, or root commit.
-    // TODO: Should this be an `OsString`?
     #[arg()]
     pub base: Option<String>,
 
     /// Head commit in comparison
-    // TODO: Default to current HEAD.
     #[arg()]
     pub head: Option<String>,
 }

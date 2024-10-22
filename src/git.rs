@@ -18,13 +18,13 @@ impl Context {
     /// # Errors
     ///
     /// Forwards any errors arising from `git2`.
-    pub fn checkout(&self, reference: &str) -> Result<()> {
+    pub fn checkout(&self, reference: impl AsRef<str>) -> Result<()> {
         let repo = &self.repo;
         // We don't want to discard uncommitted files.
         if !repo.statuses(None)?.is_empty() {
             return Err(anyhow!("Repository contains uncommitted files"));
         }
-        let (object, git_reference) = repo.revparse_ext(reference)?;
+        let (object, git_reference) = repo.revparse_ext(reference.as_ref())?;
         repo.checkout_tree(&object, None)?;
         git_reference.map_or_else(
             || repo.set_head_detached(object.id()),
@@ -36,6 +36,15 @@ impl Context {
             },
         )?;
         Ok(())
+    }
+
+    /// Resolve a git reference to an object ID.
+    fn resolve_ref(&self, reference: impl AsRef<str>) -> Result<git2::Oid> {
+        Ok(self
+            .repo
+            .revparse_single(reference.as_ref())?
+            .peel_to_commit()?
+            .id())
     }
 }
 
@@ -50,29 +59,24 @@ impl TryFrom<&CliArgs> for Context {
 }
 
 /// Reference targets for performance diffing.
-pub struct DiffTargets<'a> {
+pub struct DiffTargets {
     /// Base reference.
-    pub base_ref: &'a str,
+    pub base_ref: git2::Oid,
     /// Head reference.
-    pub head_ref: &'a str,
+    pub head_ref: git2::Oid,
 }
 
-impl<'a> TryFrom<&'a CliArgs> for DiffTargets<'a> {
+impl<'a> TryFrom<(&'a CliArgs, &'a Context)> for DiffTargets {
     type Error = anyhow::Error;
-    fn try_from(value: &'a CliArgs) -> Result<Self, Self::Error> {
+    fn try_from((args, ctx): (&'a CliArgs, &'a Context)) -> Result<Self, Self::Error> {
+        /// Default branch name
+        // TODO: Get this from config instead.
+        const DEFAULT_BRANCH: &str = "main";
+        let [base, head] = [(&args.base, DEFAULT_BRANCH), (&args.head, "HEAD")]
+            .map(|(git_ref, default)| git_ref.as_ref().map_or(default, |v| v));
         Ok(Self {
-            // TODO: default to commit before branching, or the root commit.
-            base_ref: value
-                .base
-                .as_ref()
-                .ok_or_else(|| anyhow!("Base ref must be specified"))?,
-            // TODO: Default to HEAD:
-            // `head_ref: value.head.as_ref().map_or("HEAD", |s| s.as_str())`
-            // Requires binding to the current head using `Context`
-            head_ref: value
-                .head
-                .as_ref()
-                .ok_or_else(|| anyhow!("Head ref must be specified"))?,
+            base_ref: ctx.resolve_ref(base)?,
+            head_ref: ctx.resolve_ref(head)?,
         })
     }
 }
