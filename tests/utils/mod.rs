@@ -28,23 +28,20 @@ pub fn initial_commit(repo: &git2::Repository) -> Result<Oid> {
     )?)
 }
 
-pub fn git_init<'a>(path: &'a Path) -> Result<TestContext<'a>> {
+pub fn git_init(path: &Path) -> Result<TestContext<'_>> {
     // Check if directory already exists
     if path.try_exists().unwrap_or_default() {
         return Err(anyhow!(format!("Directory {path:#?} already exists!")));
     }
 
     // Attempt to create directory.
-    std::fs::create_dir_all(&path).with_context(|| "Failed to create directory {path:#?}")?;
+    std::fs::create_dir_all(path).with_context(|| "Failed to create directory {path:#?}")?;
 
-    let repo = git2::Repository::init(&path)
-        .with_context(|| "Failed to create repository at {path:#?}")?;
+    let repo =
+        git2::Repository::init(path).with_context(|| "Failed to create repository at {path:#?}")?;
     initial_commit(&repo)?;
 
-    Ok(TestContext(git::Context {
-        repo,
-        path: path.as_ref(),
-    }))
+    Ok(TestContext(git::Context { repo, path }))
 }
 
 pub fn git_add(repo: &Repository, path: &Path) -> Result<()> {
