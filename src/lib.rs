@@ -16,5 +16,8 @@ pub mod command {
     pub use config::Config;
 }
 
+/// Configuration for the run
+pub mod config;
+
 /// Measurement functions
 pub mod measurement;
