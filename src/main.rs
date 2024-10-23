@@ -5,7 +5,8 @@ use std::fmt::Debug;
 use clap::Parser;
 use git_perfdiff::{
     cli::Args,
-    command::Config,
+    command::Config as CommandConfig,
+    config::Config,
     git::{Context, DiffTargets},
     measurement::record_runtime,
 };
@@ -19,7 +20,7 @@ fn print_error<E: Debug>(error: E) -> ! {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let command = Config::from(&args).validate();
+    let command = CommandConfig::from(&args).validate();
     let git_ctx = Context::try_from(&args)?;
     let diff_targets = DiffTargets::try_from((&args, &git_ctx))?;
 
@@ -36,6 +37,7 @@ fn main() -> Result<()> {
             Err(error) => print_error(error),
         }
     }
+    let _config = Config::from_args(args);
 
     Ok(())
 }
