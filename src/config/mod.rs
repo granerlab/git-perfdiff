@@ -1,7 +1,13 @@
+use anyhow::Result;
 use std::{
     path::{Path, PathBuf},
     sync::LazyLock,
 };
+
+/// Configuration for command execution.
+mod command;
+pub use command::validation::Validated;
+pub use command::Config as Command;
 
 use crate::cli::Args;
 use serde::Deserialize;
@@ -31,22 +37,32 @@ impl ConfigFile {
 
 /// Configuration for a program invocation.
 pub struct Config {
-    /// Working directory for command execution
-    pub working_dir: PathBuf,
+    /// Command execution configuration
+    pub command: Command<Validated>,
 }
 
 impl Config {
     /// Create config object from CLI args and config file.
-    fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Self {
+    fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Result<Self> {
         let working_dir = cli_args
             .working_dir
             .or(config_file.working_dir)
             .unwrap_or_else(|| CURRENT_DIRECTORY.to_path_buf());
-        Self { working_dir }
+        let command = Command::new(
+            cli_args.command,
+            cli_args.arg.unwrap_or_default(),
+            working_dir,
+            cli_args.show_output,
+        )
+        .validate()?;
+        Ok(Self { command })
     }
     /// Create configuration object from CLI arguments.
-    #[must_use]
-    pub fn from_args(cli_args: Args) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration could not be successfully validated.
+    pub fn from_args(cli_args: Args) -> Result<Self> {
         let config_file = ConfigFile::load();
         Self::from_args_and_config_file(cli_args, config_file)
     }

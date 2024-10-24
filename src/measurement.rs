@@ -1,9 +1,9 @@
-use crate::command::{validation::Validated, Config};
+use crate::config::{Command, Validated};
 use std::time::Instant;
 
 #[must_use]
 /// Record the run time of a validated command configuration.
-pub fn record_runtime(command: &Config<Validated>) -> f64 {
+pub fn record_runtime(command: &Command<Validated>) -> f64 {
     let mut invocation = command.to_command();
 
     let timer = Instant::now();

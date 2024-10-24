@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use git_perfdiff::{cli, command, git, measurement};
+use git_perfdiff::{cli, config::Config, git, measurement};
 use std::path::Path;
 
 mod utils;
@@ -36,17 +36,18 @@ fn test_integration() -> Result<()> {
         head: Some(head_sha.to_string()),
     };
 
-    let command_config = command::Config::from(&args).validate().unwrap();
     let diff_targets = git::DiffTargets::try_from((&args, ctx))?;
+    let config = Config::from_args(args).expect("Configuration failed to validate");
+    let command_config = &config.command;
 
     ctx.checkout(diff_targets.base_ref.to_string())?;
 
-    let measurement = measurement::record_runtime(&command_config);
+    let measurement = measurement::record_runtime(command_config);
     assert!(measurement < PERFORMANCE_EPSILON);
 
     ctx.checkout(diff_targets.head_ref.to_string())?;
 
-    let measurement = measurement::record_runtime(&command_config);
+    let measurement = measurement::record_runtime(command_config);
     assert!((measurement - sleep_duration).abs() < PERFORMANCE_EPSILON);
     Ok(())
 }

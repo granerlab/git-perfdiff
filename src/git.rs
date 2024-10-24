@@ -8,7 +8,6 @@ pub struct Context<'a> {
     /// The wrapped repository.
     pub repo: Repository,
     /// Path to the git repository in the file system.
-    // TODO: Refactor to be a `&Path` to avoid cloning
     pub path: &'a Path,
 }
 

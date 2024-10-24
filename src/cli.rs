@@ -12,7 +12,8 @@ fn get_current_dir() -> OsString {
 }
 
 /// Measure performance of a program across git commits.
-#[derive(Parser, Debug)]
+// TODO: Remove Clone once everything is added to Config
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Command to run

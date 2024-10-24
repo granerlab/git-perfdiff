@@ -15,7 +15,7 @@ fn test_args() -> Args {
 #[test]
 fn test_working_dir() {
     let args = test_args();
-    let working_dir = "/work_dir";
+    let working_dir = "/tmp";
     let config_file_toml = format!(
         r#"
             working_dir = "{working_dir}"
@@ -24,7 +24,8 @@ fn test_working_dir() {
     let config = Config::from_args_and_config_file(
         args,
         toml::from_str(&config_file_toml).expect("Incorrect TOML"),
-    );
+    )
+    .expect("Configuration failed to validate");
 
-    assert!(config.working_dir.to_str() == Some(working_dir));
+    assert!(config.command.working_dir.to_str() == Some(working_dir));
 }
