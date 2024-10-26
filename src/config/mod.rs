@@ -23,7 +23,11 @@ static CURRENT_DIRECTORY: LazyLock<&Path> = LazyLock::new(|| Path::new("."));
 #[derive(Deserialize, Default)]
 struct ConfigFile {
     /// Working directory for command execution.
+    /// Default is the directory where `git_perfdiff` is executed.
     working_dir: Option<PathBuf>,
+    /// Main git branch name.
+    /// Default is "main"
+    main_branch_name: Option<String>,
 }
 
 impl ConfigFile {
@@ -50,8 +54,8 @@ impl Config {
     /// Create config object from CLI args and config file.
     fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Result<Self> {
         /// Default git branch
-        // TODO: Get from config
-        const DEFAULT_BRANCH: &str = "main";
+        const DEFAULT_MAIN_BRANCH: &str = "main";
+
         let working_dir = cli_args
             .working_dir
             .or(config_file.working_dir)
@@ -63,12 +67,19 @@ impl Config {
             cli_args.show_output,
         )
         .validate()?;
+
         let git_ctx = GitContext::try_from(cli_args.path)?;
+
+        let default_branch = config_file
+            .main_branch_name
+            .as_ref()
+            .map_or(DEFAULT_MAIN_BRANCH, |v| v);
         let git_targets = DiffTargets::from_string_refs(
             &git_ctx,
-            cli_args.base.as_ref().map_or(DEFAULT_BRANCH, |v| v),
+            cli_args.base.as_ref().map_or(default_branch, |v| v),
             cli_args.head.as_ref().map_or("HEAD", |v| v),
         )?;
+
         Ok(Self {
             command,
             git_ctx,
