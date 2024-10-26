@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use git_perfdiff::{cli, config::Config, git, measurement};
+use git_perfdiff::{cli, config::Config, measurement};
 use std::path::Path;
 
 mod utils;
@@ -36,9 +36,9 @@ fn test_integration() -> Result<()> {
         head: Some(head_sha.to_string()),
     };
 
-    let diff_targets = git::DiffTargets::try_from((&args, ctx))?;
     let config = Config::from_args(args).expect("Configuration failed to validate");
     let command_config = &config.command;
+    let diff_targets = &config.git_targets;
 
     ctx.checkout(diff_targets.base_ref.to_string())?;
 

@@ -9,8 +9,8 @@ mod command;
 pub use command::validation::Validated;
 pub use command::Config as Command;
 
-use crate::cli::Args;
 use crate::git::Context as GitContext;
+use crate::{cli::Args, git::DiffTargets};
 use serde::Deserialize;
 
 #[cfg(test)]
@@ -37,17 +37,21 @@ impl ConfigFile {
 }
 
 /// Configuration for a program invocation.
-// TODO: Move DiffTargets and GitContext into Config
 pub struct Config {
     /// Command execution configuration
     pub command: Command<Validated>,
     /// Git context
     pub git_ctx: GitContext,
+    /// Git references to compare
+    pub git_targets: DiffTargets,
 }
 
 impl Config {
     /// Create config object from CLI args and config file.
     fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Result<Self> {
+        /// Default git branch
+        // TODO: Get from config
+        const DEFAULT_BRANCH: &str = "main";
         let working_dir = cli_args
             .working_dir
             .or(config_file.working_dir)
@@ -60,7 +64,16 @@ impl Config {
         )
         .validate()?;
         let git_ctx = GitContext::try_from(cli_args.path)?;
-        Ok(Self { command, git_ctx })
+        let git_targets = DiffTargets::from_string_refs(
+            &git_ctx,
+            cli_args.base.as_ref().map_or(DEFAULT_BRANCH, |v| v),
+            cli_args.head.as_ref().map_or("HEAD", |v| v),
+        )?;
+        Ok(Self {
+            command,
+            git_ctx,
+            git_targets,
+        })
     }
     /// Create configuration object from CLI arguments.
     ///

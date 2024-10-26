@@ -2,15 +2,15 @@
 use anyhow::Result;
 
 use clap::Parser;
-use git_perfdiff::{cli::Args, config::Config, git::DiffTargets, measurement::record_runtime};
+use git_perfdiff::{cli::Args, config::Config, measurement::record_runtime};
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let config = Config::from_args(args.clone())?;
+    let config = Config::from_args(args)?;
     let git_ctx = &config.git_ctx;
     let command = &config.command;
-    let diff_targets = DiffTargets::try_from((&args, git_ctx))?;
+    let diff_targets = &config.git_targets;
 
     for git_ref in [diff_targets.base_ref, diff_targets.head_ref] {
         println!("Measuring {git_ref}...");

@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use which::which;
 
-pub(crate) mod validation;
+/// Validation for commands
+pub(super) mod validation;
 
 use validation::{Error, NotValidated, State, Validated};
 

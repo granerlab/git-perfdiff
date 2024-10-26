@@ -1,4 +1,3 @@
-use crate::cli::Args as CliArgs;
 use anyhow::{anyhow, Result};
 use git2::Repository;
 use std::path::PathBuf;
@@ -65,17 +64,11 @@ pub struct DiffTargets {
     pub head_ref: git2::Oid,
 }
 
-impl<'a> TryFrom<(&'a CliArgs, &'a Context)> for DiffTargets {
-    type Error = anyhow::Error;
-    fn try_from((args, ctx): (&'a CliArgs, &'a Context)) -> Result<Self, Self::Error> {
-        /// Default branch name
-        // TODO: Get this from config instead.
-        const DEFAULT_BRANCH: &str = "main";
-        let [base, head] = [(&args.base, DEFAULT_BRANCH), (&args.head, "HEAD")]
-            .map(|(git_ref, default)| git_ref.as_ref().map_or(default, |v| v));
-        Ok(Self {
-            base_ref: ctx.resolve_ref(base)?,
-            head_ref: ctx.resolve_ref(head)?,
-        })
+impl DiffTargets {
+    /// Use git context to resolve e.g. branch names or tags.
+    pub(crate) fn from_string_refs(ctx: &Context, base: &str, head: &str) -> Result<Self> {
+        let head_ref = ctx.resolve_ref(head)?;
+        let base_ref = ctx.resolve_ref(base)?;
+        Ok(Self { base_ref, head_ref })
     }
 }
