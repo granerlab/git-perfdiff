@@ -12,7 +12,7 @@ fn test_integration() -> Result<()> {
     let TestContext(ctx) = &git_init(Path::new("/tmp/git-perfdiff/test"))?;
 
     let script_name = Path::new("script.sh");
-    let script_path = Path::join(ctx.path, script_name);
+    let script_path = Path::join(&ctx.path, script_name);
     std::fs::write(&script_path, "pwd")
         .with_context(|| format!("Failed to write {script_path:#?}"))?;
 
@@ -31,7 +31,7 @@ fn test_integration() -> Result<()> {
         arg: Some(Vec::from([script_path.to_str().unwrap().to_string()])),
         working_dir: None,
         show_output: false,
-        path: ctx.path.to_path_buf(),
+        path: ctx.path.clone(),
         base: Some(base_sha.to_string()),
         head: Some(head_sha.to_string()),
     };

@@ -10,6 +10,7 @@ pub use command::validation::Validated;
 pub use command::Config as Command;
 
 use crate::cli::Args;
+use crate::git::Context as GitContext;
 use serde::Deserialize;
 
 #[cfg(test)]
@@ -36,9 +37,12 @@ impl ConfigFile {
 }
 
 /// Configuration for a program invocation.
+// TODO: Move DiffTargets and GitContext into Config
 pub struct Config {
     /// Command execution configuration
     pub command: Command<Validated>,
+    /// Git context
+    pub git_ctx: GitContext,
 }
 
 impl Config {
@@ -55,7 +59,8 @@ impl Config {
             cli_args.show_output,
         )
         .validate()?;
-        Ok(Self { command })
+        let git_ctx = GitContext::try_from(cli_args.path)?;
+        Ok(Self { command, git_ctx })
     }
     /// Create configuration object from CLI arguments.
     ///
