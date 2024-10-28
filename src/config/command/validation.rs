@@ -1,6 +1,6 @@
-use super::config::Config;
-use std::marker::PhantomData;
-use which::which;
+use super::Config;
+use std::{fmt::Display, marker::PhantomData};
+///
 /// The validation state of a command,
 /// used for ensuring command is valid before execution.
 pub trait State {}
@@ -24,9 +24,20 @@ pub enum Error {
     WorkingDirNotFound,
 }
 
-impl<'a, S: State> Config<'a, S> {
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CommandNotFound => f.write_str("Command not found"),
+            Self::WorkingDirNotFound => f.write_str("Working directory not found"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl<S: State> Config<S> {
     /// Transition the command configuration to another state.
-    const fn transition<N: State>(self) -> Config<'a, N> {
+    pub(super) fn transition<N: State>(self) -> Config<N> {
         // TODO: Do this without writing out all struct members.
         Config {
             command: self.command,
@@ -35,25 +46,5 @@ impl<'a, S: State> Config<'a, S> {
             show_output: self.show_output,
             _marker: PhantomData,
         }
-    }
-}
-
-impl<'a> Config<'a, NotValidated> {
-    /// Validate that the command can be executed as configured.
-    /// Obviously does not guarantee that the command runs successfully,
-    /// but it should at least be possible to start.
-    /// Does not validate the arguments passed to the program.
-    ///
-    /// # Errors
-    ///
-    /// An error is returned if the command configuration fails the validation.
-    pub fn validate(self) -> Result<Config<'a, Validated>, Error> {
-        if which(self.command).is_err() {
-            return Err(Error::CommandNotFound);
-        }
-        if !self.working_dir.try_exists().unwrap_or(false) {
-            return Err(Error::WorkingDirNotFound);
-        }
-        Ok(self.transition())
     }
 }
