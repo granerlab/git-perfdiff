@@ -6,15 +6,12 @@ use std::{
 
 /// Configuration for command execution.
 mod command;
-pub use command::validation::Validated;
 pub use command::Config as Command;
+pub use command::Validated;
 
 use crate::git::Context as GitContext;
 use crate::{cli::Args, git::DiffTargets};
 use serde::Deserialize;
-
-#[cfg(test)]
-mod test;
 
 /// Current directory as a Path
 static CURRENT_DIRECTORY: LazyLock<&Path> = LazyLock::new(|| Path::new("."));

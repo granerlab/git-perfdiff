@@ -4,9 +4,10 @@ use std::process::{Command, Stdio};
 use which::which;
 
 /// Validation for commands
-pub(super) mod validation;
+mod validation;
 
-use validation::{Error, NotValidated, State, Validated};
+pub use validation::Validated;
+use validation::{Error, NotValidated, State};
 
 /// Everything required to execute an external command.
 pub struct Config<S: State> {

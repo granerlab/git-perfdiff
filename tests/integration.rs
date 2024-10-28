@@ -11,19 +11,32 @@ const PERFORMANCE_EPSILON: f64 = 0.1;
 fn test_integration() -> Result<()> {
     let TestContext(ctx) = &git_init(Path::new("/tmp/git-perfdiff/test"))?;
 
+    // TODO: Test that specifying a non-existing branch doesn't work.
+    let config_file_toml = format!(
+        r#"
+            working_dir = "{0}"
+            main_branch_name = "main"
+        "#,
+        &ctx.path.to_str().unwrap()
+    );
+    let toml_name = Path::new(".perfdiff.toml");
+    let toml_path = &ctx.path.join(toml_name);
+    std::fs::write(toml_path, config_file_toml)
+        .with_context(|| format!("Failed to write {toml_path:#?}"))?;
+
     let script_name = Path::new("script.sh");
     let script_path = Path::join(&ctx.path, script_name);
     std::fs::write(&script_path, "pwd")
         .with_context(|| format!("Failed to write {script_path:#?}"))?;
 
-    git_add(&ctx.repo, script_name)?;
+    git_add(&ctx.repo, &[script_name, toml_name])?;
     let base_sha = git_commit(&ctx.repo, "Added script")?;
 
     let sleep_duration = 0.2;
 
     std::fs::write(&script_path, format!("sleep {sleep_duration} && pwd"))?;
 
-    git_add(&ctx.repo, script_name)?;
+    git_add(&ctx.repo, &[script_name])?;
     let head_sha = git_commit(&ctx.repo, "Changed script")?;
 
     let args = cli::Args {

@@ -47,9 +47,11 @@ pub fn git_init(path: &Path) -> Result<TestContext> {
     }))
 }
 
-pub fn git_add(repo: &Repository, path: &Path) -> Result<()> {
+pub fn git_add(repo: &Repository, paths: &[&Path]) -> Result<()> {
     let mut index = repo.index()?;
-    index.add_path(path)?;
+    for path in paths {
+        index.add_path(path)?;
+    }
     index.write()?;
     Ok(())
 }
