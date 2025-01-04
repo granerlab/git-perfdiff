@@ -1,3 +1,4 @@
+//! Integration tests
 use anyhow::{Context, Result};
 use git_perfdiff::{cli, config::Config, measurement};
 use std::path::Path;
