@@ -29,25 +29,42 @@ fn test_integration() -> Result<()> {
     let toml_path = &ctx.path.join(toml_name);
     std::fs::write(toml_path, config_file_toml)
         .with_context(|| format!("Failed to write {toml_path:#?}"))?;
+    git_add(&ctx.repo, &[toml_name])?;
 
-    let script_name = Path::new("script.sh");
-    let script_path = Path::join(&ctx.path, script_name);
-    std::fs::write(&script_path, "pwd")
-        .with_context(|| format!("Failed to write {script_path:#?}"))?;
+    let build_script_name = Path::new("build.sh");
+    let build_script_path = &ctx.path.join(build_script_name);
 
-    git_add(&ctx.repo, &[script_name, toml_name])?;
-    let base_sha = git_commit(&ctx.repo, "Added script")?;
+    let script_name = "script.sh";
+    let gitignore = Path::new(".gitignore");
+    std::fs::write(ctx.path.join(gitignore), script_name)?;
+    git_add(&ctx.repo, &[gitignore])?;
+
+    let script_content = "echo 'hello'";
+    std::fs::write(
+        build_script_path,
+        format!("echo \"{script_content}\" > {script_name}"),
+    )
+    .with_context(|| format!("Failed to write {build_script_path:#?}"))?;
+
+    git_add(&ctx.repo, &[build_script_name])?;
+    let base_sha = git_commit(&ctx.repo, "Added build script")?;
 
     let sleep_duration = 0.2;
 
-    std::fs::write(&script_path, format!("sleep {sleep_duration} && pwd"))?;
+    let new_script_content = format!("sleep {sleep_duration} && {script_content}");
+    std::fs::write(
+        build_script_path,
+        format!("echo \"{new_script_content}\" > {script_name}"),
+    )?;
 
-    git_add(&ctx.repo, &[script_name])?;
+    git_add(&ctx.repo, &[build_script_name])?;
     let head_sha = git_commit(&ctx.repo, "Changed script")?;
 
     let args = cli::Args {
         command: "/bin/sh".to_string(),
-        arg: Some(Vec::from([script_path.to_str().unwrap().to_string()])),
+        arg: Some(Vec::from([script_name.to_owned()])),
+        build_command: Some("/bin/sh".to_string()),
+        build_arg: Some(Vec::from([build_script_name.to_str().unwrap().to_string()])),
         working_dir: None,
         show_output: false,
         path: ctx.path.clone(),
@@ -56,16 +73,21 @@ fn test_integration() -> Result<()> {
     };
 
     let config = Config::from_args(args).expect("Configuration failed to validate");
+    let build_command = &config.build_command.unwrap();
     let command_config = &config.command;
     let diff_targets = &config.git_targets;
 
     ctx.checkout(diff_targets.base_ref.to_string())?;
 
+    build_command.to_command().status()?;
     let measurement = measurement::record_runtime(command_config);
     assert!(measurement < PERFORMANCE_EPSILON);
 
+    assert!(gitignore.exists());
+    // std::fs::remove_file(&ctx.path.join(script_name))?;
     ctx.checkout(diff_targets.head_ref.to_string())?;
 
+    build_command.to_command().status()?;
     let measurement = measurement::record_runtime(command_config);
     assert!((measurement - sleep_duration).abs() < PERFORMANCE_EPSILON);
     Ok(())

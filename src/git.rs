@@ -10,6 +10,15 @@ pub struct Context {
     pub path: PathBuf,
 }
 
+/// Checks if a git repository is clean, i.e. has no uncommitted, unignored files.
+fn repo_is_clean(repo: &Repository) -> Result<bool> {
+    let git_statuses = repo.statuses(None)?;
+    let unclean_files = git_statuses
+        .iter()
+        .filter(|file| !file.status().is_ignored());
+    Ok(unclean_files.count() == 0)
+}
+
 impl Context {
     /// Checkout a git reference (SHA, branch name, tag).
     ///
@@ -19,7 +28,7 @@ impl Context {
     pub fn checkout(&self, reference: impl AsRef<str>) -> Result<()> {
         let repo = &self.repo;
         // We don't want to discard uncommitted files.
-        if !repo.statuses(None)?.is_empty() {
+        if !repo_is_clean(repo)? {
             return Err(anyhow!("Repository contains uncommitted files"));
         }
         let (object, git_reference) = repo.revparse_ext(reference.as_ref())?;

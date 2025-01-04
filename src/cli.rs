@@ -24,6 +24,14 @@ pub struct Args {
     #[arg(short, long)]
     pub arg: Option<Vec<String>>,
 
+    /// Command to run for build step
+    #[arg(short('B'), long)]
+    pub build_command: Option<String>,
+
+    /// Arguments to pass to build command
+    #[arg(short, long)]
+    pub build_arg: Option<Vec<String>>,
+
     /// Working directory for program execution. Defaults to the `path` argument.
     #[arg(short, long)]
     pub working_dir: Option<PathBuf>,

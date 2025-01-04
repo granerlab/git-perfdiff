@@ -35,6 +35,8 @@ impl ConfigFile {
 pub struct Config {
     /// Command execution configuration
     pub command: Command<Validated>,
+    /// Command execution configuration
+    pub build_command: Option<Command<Validated>>,
     /// Git context
     pub git_ctx: GitContext,
     /// Git references to compare
@@ -51,6 +53,20 @@ impl Config {
             .working_dir
             .or(config_file.working_dir)
             .unwrap_or_else(|| cli_args.path.clone());
+
+        let build_command = cli_args
+            .build_command
+            .map(|build_command| {
+                Command::new(
+                    build_command,
+                    cli_args.build_arg.unwrap_or_default(),
+                    working_dir.clone(),
+                    cli_args.show_output,
+                )
+                .validate()
+            })
+            .transpose()?;
+
         let command = Command::new(
             cli_args.command,
             cli_args.arg.unwrap_or_default(),
@@ -73,6 +89,7 @@ impl Config {
 
         Ok(Self {
             command,
+            build_command,
             git_ctx,
             git_targets,
         })

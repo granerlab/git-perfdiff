@@ -9,6 +9,7 @@ fn main() -> Result<()> {
 
     let config = Config::from_args(args)?;
     let git_ctx = &config.git_ctx;
+    let build_command = &config.build_command;
     let command = &config.command;
     let diff_targets = &config.git_targets;
 
@@ -17,6 +18,9 @@ fn main() -> Result<()> {
         git_ctx
             .checkout(git_ref.to_string())
             .expect("Checkout failed");
+        if let Some(build) = build_command {
+            build.to_command().status()?;
+        }
         let measurement = record_runtime(command);
         println!("Ran in {measurement} seconds.");
     }
