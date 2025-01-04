@@ -9,7 +9,12 @@ const PERFORMANCE_EPSILON: f64 = 0.1;
 
 #[test]
 fn test_integration() -> Result<()> {
-    let TestContext(ctx) = &git_init(Path::new("/tmp/git-perfdiff/test"))?;
+    let test_repo_path = Path::new("/tmp/git-perfdiff/test");
+    if test_repo_path.exists() {
+        std::fs::remove_dir_all(test_repo_path)?;
+    }
+
+    let TestContext(ctx) = &git_init(test_repo_path)?;
 
     // TODO: Test that specifying a non-existing branch doesn't work.
     let config_file_toml = format!(
