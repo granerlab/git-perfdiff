@@ -24,7 +24,7 @@ pub struct Args {
     #[arg(short, long)]
     pub arg: Option<Vec<String>>,
 
-    /// Working directory for program execution
+    /// Working directory for program execution. Defaults to the `path` argument.
     #[arg(short, long)]
     pub working_dir: Option<PathBuf>,
 

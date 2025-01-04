@@ -1,8 +1,5 @@
 use anyhow::Result;
-use std::{
-    path::{Path, PathBuf},
-    sync::LazyLock,
-};
+use std::path::PathBuf;
 
 /// Configuration for command execution.
 mod command;
@@ -12,9 +9,6 @@ pub use command::Validated;
 use crate::git::Context as GitContext;
 use crate::{cli::Args, git::DiffTargets};
 use serde::Deserialize;
-
-/// Current directory as a Path
-static CURRENT_DIRECTORY: LazyLock<&Path> = LazyLock::new(|| Path::new("."));
 
 /// Contains all options that can be set in the config file
 #[derive(Deserialize, Default)]
@@ -56,7 +50,7 @@ impl Config {
         let working_dir = cli_args
             .working_dir
             .or(config_file.working_dir)
-            .unwrap_or_else(|| CURRENT_DIRECTORY.to_path_buf());
+            .unwrap_or_else(|| cli_args.path.clone());
         let command = Command::new(
             cli_args.command,
             cli_args.arg.unwrap_or_default(),
