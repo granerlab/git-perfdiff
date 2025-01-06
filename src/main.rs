@@ -3,7 +3,11 @@ use std::panic::catch_unwind;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use git_perfdiff::{cli::Args, config::Config, measurement::record_runtime};
+use git_perfdiff::{
+    cli::Args,
+    config::Config,
+    measurement::{record_runtime, Results},
+};
 
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -28,8 +32,14 @@ fn main() -> Result<()> {
             if let Some(build) = build_command {
                 build.to_command().status()?;
             }
-            let measurement = record_runtime(command);
-            println!("Ran in {measurement} seconds.");
+            let Results {
+                wall_time,
+                avg_cpu,
+                avg_ram,
+            } = record_runtime(command)?;
+            println!("Avg cpu usage: {avg_cpu}%");
+            println!("Avg mem usage: {ram} kB", ram = avg_ram / 1024);
+            println!("Ran in {} seconds.", wall_time.as_secs_f32());
         }
         Ok(())
     });
