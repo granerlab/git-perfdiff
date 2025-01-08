@@ -45,7 +45,9 @@ fn main() -> Result<()> {
     });
 
     // Restore repository to previous state regardless of execution status.
-    git_ctx.checkout(current_git_ref)?;
+    git_ctx
+        .checkout(current_git_ref)
+        .expect("Failed to reset repository state after measuring, please inspect manually.");
 
-    program_result.map_err(|_| anyhow!("Program failure!"))?
+    program_result.map_err(|_| anyhow!("Internal failure!"))?
 }
