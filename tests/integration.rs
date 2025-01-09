@@ -1,6 +1,10 @@
 //! Integration tests
 use anyhow::{Context, Result};
-use git_perfdiff::{cli, config::Config, measurement};
+use git_perfdiff::{
+    cli,
+    config::Config,
+    measurement::{self, Results},
+};
 use std::path::Path;
 
 mod utils;
@@ -80,15 +84,14 @@ fn test_integration() -> Result<()> {
     ctx.checkout(diff_targets.base_ref.to_string())?;
 
     build_command.to_command().status()?;
-    let measurement = measurement::record_runtime(command_config);
-    assert!(measurement < PERFORMANCE_EPSILON);
+    let Results { wall_time, .. } = measurement::record_runtime(command_config)?;
+    assert!(wall_time.as_secs_f64() < PERFORMANCE_EPSILON);
 
     assert!(gitignore.exists());
-    // std::fs::remove_file(&ctx.path.join(script_name))?;
     ctx.checkout(diff_targets.head_ref.to_string())?;
 
     build_command.to_command().status()?;
-    let measurement = measurement::record_runtime(command_config);
-    assert!((measurement - sleep_duration).abs() < PERFORMANCE_EPSILON);
+    let Results { wall_time, .. } = measurement::record_runtime(command_config)?;
+    assert!((wall_time.as_secs_f64() - sleep_duration).abs() < PERFORMANCE_EPSILON);
     Ok(())
 }
