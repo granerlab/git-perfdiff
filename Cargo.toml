@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.89"
 clap = { version = "4.5.26", features = ["derive", "string"] }
 git2 = "0.20.0"
-serde = { version = "1.0.213", features = ["derive"] }
+serde = { version = "1.0.217", features = ["derive"] }
 sysinfo = "0.33.1"
 toml = "0.8.19"
 which = "7.0.1"
