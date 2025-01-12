@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.95"
 clap = { version = "4.5.26", features = ["derive", "string"] }
 git2 = "0.20.0"
+minijinja = { version = "2.6.0", features = ["loader"] }
 serde = { version = "1.0.217", features = ["derive"] }
 sysinfo = "0.33.1"
 toml = "0.8.19"

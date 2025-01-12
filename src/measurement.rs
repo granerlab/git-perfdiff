@@ -1,5 +1,6 @@
 use crate::config::{Command, Validated};
 use anyhow::{anyhow, Result};
+use serde::Serialize;
 use std::process::ExitStatus;
 use std::sync::LazyLock;
 use std::thread::sleep;
@@ -19,6 +20,7 @@ struct ProbeMeasurement {
 }
 
 /// Measurement results
+#[derive(Serialize)]
 pub struct Results {
     /// Wall run time of process.
     pub wall_time: Duration,

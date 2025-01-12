@@ -1,4 +1,5 @@
 use anyhow::Result;
+use minijinja::Environment;
 use std::path::PathBuf;
 
 /// Configuration for command execution.
@@ -7,8 +8,12 @@ pub use command::Config as Command;
 pub use command::Validated;
 
 use crate::git::Context as GitContext;
+use crate::measurement::Results;
 use crate::{cli::Args, git::DiffTargets};
 use serde::Deserialize;
+
+#[cfg(test)]
+mod tests;
 
 /// Contains all options that can be set in the config file
 #[derive(Deserialize, Default)]
@@ -19,6 +24,9 @@ struct ConfigFile {
     /// Main git branch name.
     /// Default is "main"
     main_branch_name: Option<String>,
+    /// Template for program output.
+    /// Default is each measurement on it's own line
+    output_template: Option<String>,
 }
 
 impl ConfigFile {
@@ -30,9 +38,8 @@ impl ConfigFile {
         )
     }
 }
-
 /// Configuration for a program invocation.
-pub struct Config {
+pub struct Config<'a> {
     /// Command execution configuration
     pub command: Command<Validated>,
     /// Command execution configuration
@@ -41,13 +48,30 @@ pub struct Config {
     pub git_ctx: GitContext,
     /// Git references to compare
     pub git_targets: DiffTargets,
+    /// Template engine
+    template_engine: Environment<'a>,
 }
 
-impl Config {
+/// Set up template engine with an output template.
+fn setup_template_engine<'a>(output_template: String) -> Result<Environment<'a>> {
+    let mut template_engine = Environment::new();
+    template_engine.add_template_owned("output".to_string(), output_template)?;
+    Ok(template_engine)
+}
+
+/// Render results using the output template.
+fn render_with_engine(template_engine: &Environment<'_>, results: Results) -> Result<String> {
+    Ok(template_engine.get_template("output")?.render(results)?)
+}
+
+impl Config<'_> {
     /// Create config object from CLI args and config file.
     fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Result<Self> {
         /// Default git branch
         const DEFAULT_MAIN_BRANCH: &str = "main";
+        /// Default template for printing results.
+        const DEFAULT_OUTPUT_TEMPLATE: &str =
+            "Ran in {{ wall_time.secs + wall_time.nanos / 1e9 }} s.";
 
         let working_dir = cli_args
             .working_dir
@@ -87,13 +111,20 @@ impl Config {
             cli_args.head.as_ref().map_or("HEAD", |v| v),
         )?;
 
+        let output_template = config_file
+            .output_template
+            .unwrap_or_else(|| DEFAULT_OUTPUT_TEMPLATE.to_string());
+        let template_engine = setup_template_engine(output_template)?;
+
         Ok(Self {
             command,
             build_command,
             git_ctx,
             git_targets,
+            template_engine,
         })
     }
+
     /// Create configuration object from CLI arguments.
     ///
     /// # Errors
@@ -102,5 +133,14 @@ impl Config {
     pub fn from_args(cli_args: Args) -> Result<Self> {
         let config_file = ConfigFile::load();
         Self::from_args_and_config_file(cli_args, config_file)
+    }
+
+    /// Render program results to a string.
+    ///
+    /// # Errors
+    ///
+    /// Surfaces any errors encountered in the templating engine.
+    pub fn render_results(&self, results: Results) -> Result<String> {
+        render_with_engine(&self.template_engine, results)
     }
 }
