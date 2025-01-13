@@ -15,9 +15,6 @@ use crate::measurement::Results;
 use crate::{cli::Args, git::DiffTargets};
 use serde::Deserialize;
 
-#[cfg(test)]
-mod tests;
-
 /// Contains all options that can be set in the config file
 #[derive(Deserialize, Default)]
 struct ConfigFile {

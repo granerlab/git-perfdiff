@@ -20,7 +20,7 @@ struct ProbeMeasurement {
 }
 
 /// Measurement results
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 pub struct Results {
     /// Wall run time of process.
     pub wall_time: Duration,
