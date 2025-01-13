@@ -1,11 +1,14 @@
 use anyhow::Result;
-use minijinja::Environment;
 use std::path::PathBuf;
 
 /// Configuration for command execution.
 mod command;
 pub use command::Config as Command;
 pub use command::Validated;
+
+/// Configuration for output formatting.
+mod output;
+pub use output::Formatter;
 
 use crate::git::Context as GitContext;
 use crate::measurement::Results;
@@ -49,19 +52,7 @@ pub struct Config<'a> {
     /// Git references to compare
     pub git_targets: DiffTargets,
     /// Template engine
-    template_engine: Environment<'a>,
-}
-
-/// Set up template engine with an output template.
-fn setup_template_engine<'a>(output_template: String) -> Result<Environment<'a>> {
-    let mut template_engine = Environment::new();
-    template_engine.add_template_owned("output".to_string(), output_template)?;
-    Ok(template_engine)
-}
-
-/// Render results using the output template.
-fn render_with_engine(template_engine: &Environment<'_>, results: Results) -> Result<String> {
-    Ok(template_engine.get_template("output")?.render(results)?)
+    template_engine: Formatter<'a>,
 }
 
 impl Config<'_> {
@@ -114,7 +105,7 @@ impl Config<'_> {
         let output_template = config_file
             .output_template
             .unwrap_or_else(|| DEFAULT_OUTPUT_TEMPLATE.to_string());
-        let template_engine = setup_template_engine(output_template)?;
+        let template_engine = Formatter::from_template_string(output_template)?;
 
         Ok(Self {
             command,
@@ -141,6 +132,6 @@ impl Config<'_> {
     ///
     /// Surfaces any errors encountered in the templating engine.
     pub fn render_results(&self, results: Results) -> Result<String> {
-        render_with_engine(&self.template_engine, results)
+        self.template_engine.render_results(results)
     }
 }
