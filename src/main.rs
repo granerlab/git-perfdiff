@@ -6,17 +6,43 @@ use clap::Parser;
 use git_perfdiff::{
     cli::Args,
     config::Config,
+    git::DiffTargets,
     measurement::{record_runtime, Results},
 };
+
+/// Safely run the measurements, restoring the git repo on failure.
+fn run_safely(config: &Config, git_ref: &String, initial_git_ref: &String) -> Result<Results> {
+    let Config {
+        git_ctx,
+        build_command,
+        command,
+        ..
+    } = config;
+    let program_result = catch_unwind(|| {
+        git_ctx.checkout(git_ref)?;
+        if let Some(build) = build_command {
+            build.to_command().status()?;
+        }
+        record_runtime(command)
+    });
+
+    // Restore repository to previous state regardless of execution status.
+    git_ctx
+        .checkout(initial_git_ref)
+        .expect("Failed to reset repository state after measuring, please inspect manually.");
+
+    program_result.map_err(|_| anyhow!("Internal failure!"))?
+}
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
     let config = Config::from_args(args)?;
-    let git_ctx = &config.git_ctx;
-    let build_command = &config.build_command;
-    let command = &config.command;
-    let diff_targets = &config.git_targets;
+    let Config {
+        git_ctx,
+        git_targets: DiffTargets { base_ref, head_ref },
+        ..
+    } = &config;
 
     let current_git_ref = git_ctx
         .repo
@@ -25,29 +51,13 @@ fn main() -> Result<()> {
         .expect("Current git reference is not valid UTF-8")
         .to_string();
 
-    let program_result = catch_unwind(|| {
-        for git_ref in [diff_targets.base_ref, diff_targets.head_ref] {
-            println!("Measuring {git_ref}...");
-            git_ctx.checkout(git_ref.to_string())?;
-            if let Some(build) = build_command {
-                build.to_command().status()?;
-            }
-            let Results {
-                wall_time,
-                avg_cpu,
-                avg_ram,
-            } = record_runtime(command)?;
-            println!("Avg cpu usage: {avg_cpu}%");
-            println!("Avg mem usage: {ram} kB", ram = avg_ram / 1024);
-            println!("Ran in {} seconds.", wall_time.as_secs_f32());
-        }
-        Ok(())
-    });
+    println!("Measuring {base_ref}...");
+    let base_results = run_safely(&config, &base_ref.to_string(), &current_git_ref)?;
+    println!("{}", config.render_results(base_results)?);
 
-    // Restore repository to previous state regardless of execution status.
-    git_ctx
-        .checkout(current_git_ref)
-        .expect("Failed to reset repository state after measuring, please inspect manually.");
+    println!("Measuring {head_ref}...");
+    let head_results = run_safely(&config, &head_ref.to_string(), &current_git_ref)?;
+    println!("{}", config.render_results(head_results)?);
 
-    program_result.map_err(|_| anyhow!("Internal failure!"))?
+    Ok(())
 }
