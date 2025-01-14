@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use crate::measurement::Results;
 use anyhow::{anyhow, Result};
-// TODO: Replace with crate that supports eager template validation.
 use minijinja::{Environment, ErrorKind, UndefinedBehavior};
 
 #[cfg(test)]
