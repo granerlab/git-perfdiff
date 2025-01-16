@@ -2,7 +2,7 @@
 use anyhow::{Context, Result};
 use git_perfdiff::{
     cli,
-    config::Config,
+    config::ExecutionContext,
     measurement::{self, Results},
 };
 use std::path::Path;
@@ -65,18 +65,18 @@ fn test_integration() -> Result<()> {
     let head_sha = git_commit(&ctx.repo, "Changed script")?;
 
     let args = cli::Args {
-        command: "/bin/sh".to_string(),
+        command: Some("/bin/sh".to_string()),
         arg: Some(Vec::from([script_name.to_owned()])),
         build_command: Some("/bin/sh".to_string()),
         build_arg: Some(Vec::from([build_script_name.to_str().unwrap().to_string()])),
         working_dir: None,
-        show_output: false,
-        path: ctx.path.clone(),
+        show_output: Some(false),
+        path: Some(ctx.path.clone()),
         base: Some(base_sha.to_string()),
         head: Some(head_sha.to_string()),
     };
 
-    let config = Config::from_args(args).expect("Configuration failed to validate");
+    let config = ExecutionContext::from_args(args).expect("Configuration failed to validate");
     let build_command = &config.build_command.unwrap();
     let command_config = &config.command;
     let diff_targets = &config.git_targets;

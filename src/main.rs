@@ -5,14 +5,18 @@ use anyhow::{anyhow, Result};
 use clap::Parser;
 use git_perfdiff::{
     cli::Args,
-    config::Config,
+    config::ExecutionContext,
     git::DiffTargets,
     measurement::{record_runtime, Results},
 };
 
 /// Safely run the measurements, restoring the git repo on failure.
-fn run_safely(config: &Config, git_ref: &String, initial_git_ref: &String) -> Result<Results> {
-    let Config {
+fn run_safely(
+    config: &ExecutionContext,
+    git_ref: &String,
+    initial_git_ref: &String,
+) -> Result<Results> {
+    let ExecutionContext {
         git_ctx,
         build_command,
         command,
@@ -37,8 +41,8 @@ fn run_safely(config: &Config, git_ref: &String, initial_git_ref: &String) -> Re
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let config = Config::from_args(args)?;
-    let Config {
+    let config = ExecutionContext::from_args(args)?;
+    let ExecutionContext {
         git_ctx,
         git_targets: DiffTargets { base_ref, head_ref },
         ..
