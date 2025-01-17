@@ -36,7 +36,6 @@ pub struct Args {
     pub path: Option<PathBuf>,
 
     /// Base commit in comparison
-    // TODO: Default to branch split, or root commit.
     #[arg()]
     pub base: Option<String>,
 

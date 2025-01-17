@@ -24,7 +24,7 @@ impl From<Args> for Config {
             git_path: path,
             base_git_ref: base,
             head_git_ref: head,
-            ..Self::default()
+            ..Self::empty()
         }
     }
 }

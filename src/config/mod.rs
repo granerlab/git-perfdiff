@@ -1,6 +1,8 @@
+use std::env::current_dir;
+use std::path::PathBuf;
+
 /// Configuration for command execution.
 mod command;
-use std::path::PathBuf;
 
 pub use command::Config as Command;
 pub use command::Validated;
@@ -11,17 +13,34 @@ pub use output::Formatter;
 
 /// Configuration loaded from file.
 mod file;
+pub use file::load as load_config_file;
 
 /// Configuration from CLI.
 mod cli;
+
+/// Configuration from environment variables.
+mod envvars;
+pub use envvars::load as load_envvars;
 
 /// Execution context from configuration.
 mod execution_context;
 pub use execution_context::ExecutionContext;
 
-#[derive(Default)]
+/// Get the current working directory.
+fn get_current_dir() -> Option<PathBuf> {
+    current_dir().map_or_else(
+        |err| {
+            // TODO: Proper logging (warning level)
+            println!("Unable to get current directory: {err}");
+            None
+        },
+        Some,
+    )
+}
+
 /// Full configuration.
-struct Config {
+#[derive(Clone)]
+pub struct Config {
     /// Command to run
     pub command: Option<String>,
 
@@ -61,7 +80,8 @@ struct Config {
 impl Config {
     /// Extend configuration by filling missing values with
     /// those from another config object.
-    pub fn extend(self, other: Self) -> Self {
+    #[must_use]
+    pub fn extend_with(self, other: Self) -> Self {
         Self {
             command: self.command.or(other.command),
             arg: self.arg.or(other.arg),
@@ -79,7 +99,43 @@ impl Config {
 
     /// Overwrite configuration with existing values
     /// from another config object.
-    pub fn overwrite(self, other: Self) -> Self {
-        other.extend(self)
+    #[must_use]
+    pub fn overwrite_with(self, other: Self) -> Self {
+        other.extend_with(self)
+    }
+
+    /// Empty configuration object.
+    const fn empty() -> Self {
+        Self {
+            command: None,
+            arg: None,
+            build_command: None,
+            build_arg: None,
+            working_dir: None,
+            show_output: None,
+            git_path: None,
+            base_git_ref: None,
+            head_git_ref: None,
+            main_branch_name: None,
+            output_template: None,
+        }
+    }
+}
+
+impl Default for Config {
+    /// Create the default configuration.
+    // TODO: Default `base_git_ref` to branch split, or root commit.
+    // NOTE: Working dir is defaulted to git_path when constructing exe ctx.
+    fn default() -> Self {
+        Self {
+            show_output: Some(false),
+            git_path: get_current_dir(),
+            head_git_ref: Some("HEAD".to_string()),
+            main_branch_name: Some("main".to_string()),
+            output_template: Some(
+                "Ran in {{ wall_time.secs + wall_time.nanos / 1e9 }} s.".to_string(),
+            ),
+            ..Self::empty()
+        }
     }
 }

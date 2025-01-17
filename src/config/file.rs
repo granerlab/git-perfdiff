@@ -27,7 +27,7 @@ impl From<ConfigFile> for Config {
             working_dir,
             main_branch_name,
             output_template,
-            ..Self::default()
+            ..Self::empty()
         }
     }
 }
