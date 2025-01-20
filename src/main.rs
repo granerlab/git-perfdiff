@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use clap::Parser;
 use git_perfdiff::{
     cli::Args,
-    config::{load_config_file, ExecutionContext},
+    config::{load_config_file, load_envvars, Config, ExecutionContext},
     git::DiffTargets,
     measurement::{record_runtime, Results},
 };
@@ -39,8 +39,9 @@ fn run_safely(
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let args: Config = Args::parse().into();
     let config_file = load_config_file(".perfdiff.toml");
+    let envvars = load_envvars();
 
     let config = args
         .extend_with(envvars)
