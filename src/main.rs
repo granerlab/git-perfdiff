@@ -5,19 +5,23 @@ use anyhow::{anyhow, Result};
 use clap::Parser;
 use git_perfdiff::{
     cli::Args,
-    config::Config,
+    config::{load_config_file, load_envvars, Config, ExecutionContext},
     git::DiffTargets,
     measurement::{record_runtime, Results},
 };
 
 /// Safely run the measurements, restoring the git repo on failure.
-fn run_safely(config: &Config, git_ref: &String, initial_git_ref: &String) -> Result<Results> {
-    let Config {
+fn run_safely(
+    execution_context: &ExecutionContext,
+    git_ref: &String,
+    initial_git_ref: &String,
+) -> Result<Results> {
+    let ExecutionContext {
         git_ctx,
         build_command,
         command,
         ..
-    } = config;
+    } = execution_context;
     let program_result = catch_unwind(|| {
         git_ctx.checkout(git_ref)?;
         if let Some(build) = build_command {
@@ -35,14 +39,20 @@ fn run_safely(config: &Config, git_ref: &String, initial_git_ref: &String) -> Re
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let args: Config = Args::parse().into();
+    let config_file = load_config_file(".perfdiff.toml");
+    let envvars = load_envvars();
 
-    let config = Config::from_args(args)?;
-    let Config {
+    let config = args
+        .extend_with(envvars)
+        .extend_with(config_file)
+        .extend_with(Config::default());
+    let execution_context = ExecutionContext::from_config(config)?;
+    let ExecutionContext {
         git_ctx,
         git_targets: DiffTargets { base_ref, head_ref },
         ..
-    } = &config;
+    } = &execution_context;
 
     let current_git_ref = git_ctx
         .repo
@@ -52,12 +62,12 @@ fn main() -> Result<()> {
         .to_string();
 
     println!("Measuring {base_ref}...");
-    let base_results = run_safely(&config, &base_ref.to_string(), &current_git_ref)?;
-    println!("{}", config.render_results(base_results)?);
+    let base_results = run_safely(&execution_context, &base_ref.to_string(), &current_git_ref)?;
+    println!("{}", execution_context.render_results(base_results)?);
 
     println!("Measuring {head_ref}...");
-    let head_results = run_safely(&config, &head_ref.to_string(), &current_git_ref)?;
-    println!("{}", config.render_results(head_results)?);
+    let head_results = run_safely(&execution_context, &head_ref.to_string(), &current_git_ref)?;
+    println!("{}", execution_context.render_results(head_results)?);
 
     Ok(())
 }

@@ -2,7 +2,7 @@
 use anyhow::{Context, Result};
 use git_perfdiff::{
     cli,
-    config::Config,
+    config::{Config, ExecutionContext},
     measurement::{self, Results},
 };
 use std::path::Path;
@@ -64,22 +64,24 @@ fn test_integration() -> Result<()> {
     git_add(&ctx.repo, &[build_script_name])?;
     let head_sha = git_commit(&ctx.repo, "Changed script")?;
 
-    let args = cli::Args {
-        command: "/bin/sh".to_string(),
+    let args: Config = cli::Args {
+        command: Some("/bin/sh".to_string()),
         arg: Some(Vec::from([script_name.to_owned()])),
         build_command: Some("/bin/sh".to_string()),
         build_arg: Some(Vec::from([build_script_name.to_str().unwrap().to_string()])),
         working_dir: None,
-        show_output: false,
-        path: ctx.path.clone(),
+        show_output: Some(false),
+        path: Some(ctx.path.clone()),
         base: Some(base_sha.to_string()),
         head: Some(head_sha.to_string()),
-    };
+    }
+    .into();
 
-    let config = Config::from_args(args).expect("Configuration failed to validate");
-    let build_command = &config.build_command.unwrap();
-    let command_config = &config.command;
-    let diff_targets = &config.git_targets;
+    let execution_context = ExecutionContext::from_config(args.extend_with(Config::default()))
+        .expect("Configuration failed to validate");
+    let build_command = &execution_context.build_command.unwrap();
+    let command_config = &execution_context.command;
+    let diff_targets = &execution_context.git_targets;
 
     ctx.checkout(diff_targets.base_ref.to_string())?;
 

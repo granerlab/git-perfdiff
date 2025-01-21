@@ -1,15 +1,6 @@
-use std::env::current_dir;
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 use clap::Parser;
-
-/// Get the current working directory.
-fn get_current_dir() -> OsString {
-    current_dir()
-        .expect("Unable to get current directory.")
-        .into_os_string()
-}
 
 /// Measure performance of a program across git commits.
 // TODO: Remove Clone once everything is added to Config
@@ -18,7 +9,7 @@ fn get_current_dir() -> OsString {
 pub struct Args {
     /// Command to run
     #[arg(short, long)]
-    pub command: String,
+    pub command: Option<String>,
 
     /// Arguments to pass to program
     #[arg(short, long)]
@@ -38,14 +29,13 @@ pub struct Args {
 
     /// Whether to show program output
     #[arg(long, action)]
-    pub show_output: bool,
+    pub show_output: Option<bool>,
 
     /// Local path to git repository
-    #[arg(long, short, default_value=get_current_dir())]
-    pub path: PathBuf,
+    #[arg(long, short)]
+    pub path: Option<PathBuf>,
 
     /// Base commit in comparison
-    // TODO: Default to branch split, or root commit.
     #[arg()]
     pub base: Option<String>,
 

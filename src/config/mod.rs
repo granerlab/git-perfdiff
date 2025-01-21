@@ -1,8 +1,9 @@
-use anyhow::Result;
+use std::env::current_dir;
 use std::path::PathBuf;
 
 /// Configuration for command execution.
 mod command;
+
 pub use command::Config as Command;
 pub use command::Validated;
 
@@ -10,125 +11,131 @@ pub use command::Validated;
 mod output;
 pub use output::Formatter;
 
-use crate::git::Context as GitContext;
-use crate::measurement::Results;
-use crate::{cli::Args, git::DiffTargets};
-use serde::Deserialize;
+/// Configuration loaded from file.
+mod file;
+pub use file::load as load_config_file;
 
-/// Contains all options that can be set in the config file
-#[derive(Deserialize, Default)]
-struct ConfigFile {
-    /// Working directory for command execution.
-    /// Default is the directory where `git_perfdiff` is executed.
-    working_dir: Option<PathBuf>,
+/// Configuration from CLI.
+mod cli;
+
+/// Configuration from environment variables.
+mod envvars;
+pub use envvars::load as load_envvars;
+
+/// Execution context from configuration.
+mod execution_context;
+pub use execution_context::ExecutionContext;
+
+/// Get the current working directory.
+fn get_current_dir() -> Option<PathBuf> {
+    current_dir().map_or_else(
+        |err| {
+            // TODO: Proper logging (warning level)
+            println!("Unable to get current directory: {err}");
+            None
+        },
+        Some,
+    )
+}
+
+/// Full configuration.
+#[derive(Clone)]
+pub struct Config {
+    /// Command to run
+    pub command: Option<String>,
+
+    /// Arguments to pass to program
+    pub arg: Option<Vec<String>>,
+
+    /// Command to run for build step
+    pub build_command: Option<String>,
+
+    /// Arguments to pass to build command
+    pub build_arg: Option<Vec<String>>,
+
+    /// Working directory for program execution. Defaults to the `path` argument.
+    pub working_dir: Option<PathBuf>,
+
+    /// Whether to show program output
+    pub show_output: Option<bool>,
+
+    /// Local path to git repository
+    pub git_path: Option<PathBuf>,
+
+    /// Base commit in comparison
+    pub base_git_ref: Option<String>,
+
+    /// Head commit in comparison
+    pub head_git_ref: Option<String>,
+
     /// Main git branch name.
     /// Default is "main"
-    main_branch_name: Option<String>,
+    pub main_branch_name: Option<String>,
+
     /// Template for program output.
     /// Default is each measurement on it's own line
-    output_template: Option<String>,
+    pub output_template: Option<String>,
 }
 
-impl ConfigFile {
-    /// Load config file
-    fn load() -> Self {
-        std::fs::read_to_string(".perfdiff.toml").map_or_else(
-            |_| Self::default(),
-            |file| toml::from_str(file.as_str()).unwrap_or_else(|_| Self::default()),
-        )
+impl Config {
+    /// Extend configuration by filling missing values with
+    /// those from another config object.
+    #[must_use]
+    pub fn extend_with(self, other: Self) -> Self {
+        Self {
+            command: self.command.or(other.command),
+            arg: self.arg.or(other.arg),
+            build_command: self.build_command.or(other.build_command),
+            build_arg: self.build_arg.or(other.build_arg),
+            working_dir: self.working_dir.or(other.working_dir),
+            show_output: self.show_output.or(other.show_output),
+            git_path: self.git_path.or(other.git_path),
+            base_git_ref: self.base_git_ref.or(other.base_git_ref),
+            head_git_ref: self.head_git_ref.or(other.head_git_ref),
+            main_branch_name: self.main_branch_name.or(other.main_branch_name),
+            output_template: self.output_template.or(other.output_template),
+        }
+    }
+
+    /// Overwrite configuration with existing values
+    /// from another config object.
+    #[must_use]
+    pub fn overwrite_with(self, other: Self) -> Self {
+        other.extend_with(self)
+    }
+
+    /// Empty configuration object.
+    const fn empty() -> Self {
+        Self {
+            command: None,
+            arg: None,
+            build_command: None,
+            build_arg: None,
+            working_dir: None,
+            show_output: None,
+            git_path: None,
+            base_git_ref: None,
+            head_git_ref: None,
+            main_branch_name: None,
+            output_template: None,
+        }
     }
 }
-/// Configuration for a program invocation.
-pub struct Config<'a> {
-    /// Command execution configuration
-    pub command: Command<Validated>,
-    /// Command execution configuration
-    pub build_command: Option<Command<Validated>>,
-    /// Git context
-    pub git_ctx: GitContext,
-    /// Git references to compare
-    pub git_targets: DiffTargets,
-    /// Template engine
-    template_engine: Formatter<'a>,
-}
 
-impl Config<'_> {
-    /// Create config object from CLI args and config file.
-    fn from_args_and_config_file(cli_args: Args, config_file: ConfigFile) -> Result<Self> {
-        /// Default git branch
-        const DEFAULT_MAIN_BRANCH: &str = "main";
-        /// Default template for printing results.
-        const DEFAULT_OUTPUT_TEMPLATE: &str =
-            "Ran in {{ wall_time.secs + wall_time.nanos / 1e9 }} s.";
-
-        let working_dir = cli_args
-            .working_dir
-            .or(config_file.working_dir)
-            .unwrap_or_else(|| cli_args.path.clone());
-
-        let build_command = cli_args
-            .build_command
-            .map(|build_command| {
-                Command::new(
-                    build_command,
-                    cli_args.build_arg.unwrap_or_default(),
-                    working_dir.clone(),
-                    cli_args.show_output,
-                )
-                .validate()
-            })
-            .transpose()?;
-
-        let command = Command::new(
-            cli_args.command,
-            cli_args.arg.unwrap_or_default(),
-            working_dir,
-            cli_args.show_output,
-        )
-        .validate()?;
-
-        let git_ctx = GitContext::try_from(cli_args.path)?;
-
-        let default_branch = config_file
-            .main_branch_name
-            .as_ref()
-            .map_or(DEFAULT_MAIN_BRANCH, |v| v);
-        let git_targets = DiffTargets::from_string_refs(
-            &git_ctx,
-            cli_args.base.as_ref().map_or(default_branch, |v| v),
-            cli_args.head.as_ref().map_or("HEAD", |v| v),
-        )?;
-
-        let output_template = config_file
-            .output_template
-            .unwrap_or_else(|| DEFAULT_OUTPUT_TEMPLATE.to_string());
-        let template_engine = Formatter::from_template_string(output_template)?;
-
-        Ok(Self {
-            command,
-            build_command,
-            git_ctx,
-            git_targets,
-            template_engine,
-        })
-    }
-
-    /// Create configuration object from CLI arguments.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the configuration could not be successfully validated.
-    pub fn from_args(cli_args: Args) -> Result<Self> {
-        let config_file = ConfigFile::load();
-        Self::from_args_and_config_file(cli_args, config_file)
-    }
-
-    /// Render program results to a string.
-    ///
-    /// # Errors
-    ///
-    /// Surfaces any errors encountered in the templating engine.
-    pub fn render_results(&self, results: Results) -> Result<String> {
-        self.template_engine.render_results(results)
+impl Default for Config {
+    /// Create the default configuration.
+    // TODO: Default `base_git_ref` to branch split, or root commit.
+    // NOTE: Working dir is defaulted to git_path when constructing exe ctx.
+    fn default() -> Self {
+        Self {
+            show_output: Some(false),
+            git_path: get_current_dir(),
+            head_git_ref: Some("HEAD".to_string()),
+            main_branch_name: Some("main".to_string()),
+            output_template: Some(
+                "Ran in {{ wall_time.secs + wall_time.nanos / 1e9 }} s.".to_string(),
+            ),
+            ..Self::empty()
+        }
     }
 }
