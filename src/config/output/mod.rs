@@ -2,10 +2,14 @@ use std::collections::HashSet;
 
 use crate::measurement::Results;
 use anyhow::{anyhow, Result};
-use minijinja::{Environment, ErrorKind, UndefinedBehavior};
+use filters::add_filters_to_engine;
+use minijinja::Environment;
 
 #[cfg(test)]
 mod tests;
+
+/// Custom Jinja filters for use in templates.
+mod filters;
 
 /// Output template name
 const OUTPUT_TEMPLATE: &str = "output";
@@ -42,22 +46,17 @@ impl Formatter<'_> {
     fn validate_output_template(self) -> Result<Self> {
         let template = self.engine.get_template(OUTPUT_TEMPLATE)?;
         let default_results = &Results::default();
-        let default_render = template.render(default_results);
-        match default_render {
-            Ok(_) => Ok(self),
-            Err(err) => match err.kind() {
-                ErrorKind::UndefinedError => {
-                    let template_vars = template.undeclared_variables(true);
-                    let available_vars =
-                        extract_struct_fields(&serde_json::to_value(default_results)?);
-                    let undefined_vars = template_vars.difference(&available_vars);
-                    Err(anyhow!(
-                        "Template validation failed. Undefined variables used: {undefined_vars:?}.",
-                    ))
-                }
-                _ => Err(anyhow!("Template validation failed: {err}")),
-            },
+
+        let template_vars = template.undeclared_variables(true);
+        let available_vars = extract_struct_fields(&serde_json::to_value(default_results)?);
+        if !template_vars.is_subset(&available_vars) {
+            let undefined_vars = template_vars.difference(&available_vars);
+            return Err(anyhow!(
+                "Template validation failed. Undefined variables used: {undefined_vars:?}.",
+            ));
         }
+
+        Ok(template.render(default_results).map(|_| self)?)
     }
 
     /// Create a template engine populated with the output template.
@@ -67,8 +66,8 @@ impl Formatter<'_> {
     /// Surfaces any error encountered in the internal engine.
     pub fn from_template_string(output_template: String) -> Result<Self> {
         let mut engine = Environment::new();
-        engine.set_undefined_behavior(UndefinedBehavior::Strict);
         engine.add_template_owned(OUTPUT_TEMPLATE.to_string(), output_template)?;
+        add_filters_to_engine(&mut engine);
 
         Self { engine }.validate_output_template()
     }

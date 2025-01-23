@@ -24,30 +24,24 @@ struct ProbeMeasurement {
 pub struct Results {
     /// Wall run time of process.
     pub wall_time: Duration,
-    /// Average CPU utilization percentage.
-    pub avg_cpu: f32,
-    /// Average RAM utilization in Bytes.
-    pub avg_ram: u64,
+    /// CPU utilization percentage.
+    pub cpu: Vec<f64>,
+    /// RAM utilization in Bytes.
+    pub ram: Vec<f64>,
 }
 
 impl Results {
     /// Perform necessary aggregations on the measurements to create final results.
     fn from_measurements(wall_time: Duration, measurements: Vec<ProbeMeasurement>) -> Self {
-        let probe_count = measurements.len();
-        let measurement_sums = measurements
-            .into_iter()
-            .reduce(|m1, m2| ProbeMeasurement {
-                cpu: m1.cpu + m2.cpu,
-                ram: m1.ram + m2.ram,
-            })
-            .unwrap();
         #[allow(clippy::cast_precision_loss)]
-        let avg_cpu = measurement_sums.cpu / probe_count as f32;
-        let avg_ram = measurement_sums.ram / probe_count as u64;
+        let (cpu, ram) = measurements
+            .into_iter()
+            .map(|ProbeMeasurement { cpu, ram }| (f64::from(cpu), ram as f64))
+            .collect();
         Self {
             wall_time,
-            avg_cpu,
-            avg_ram,
+            cpu,
+            ram,
         }
     }
 }
