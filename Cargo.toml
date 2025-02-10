@@ -11,7 +11,7 @@ minijinja = { version = "2.6.0", features = ["builtins", "loader"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.137"
 sysinfo = "0.33.1"
-toml = "0.8.19"
+toml = "0.8.20"
 which = "7.0.1"
 
 [lints.rust]
