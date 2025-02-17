@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.95"
-clap = { version = "4.5.26", features = ["derive", "string"] }
+clap = { version = "4.5.29", features = ["derive", "string"] }
 git2 = "0.20.0"
 minijinja = { version = "2.6.0", features = ["builtins", "loader"] }
 serde = { version = "1.0.217", features = ["derive"] }
